@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Teste de atenção</title>
+<style>
+:root{--bg:#eef3f1;--fg:#16302b;--muted:#4d6660;--btn:#1f6f5c;--btnfg:#fff;
+box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media (prefers-color-scheme: dark){:root:not([data-theme="light"]){--bg:#10201d;--fg:#e6f1ee;--muted:#9bb5ae;--btn:#4cc2a5;--btnfg:#0b1a17}}
+:root[data-theme="dark"]{--bg:#10201d;--fg:#e6f1ee;--muted:#9bb5ae;--btn:#4cc2a5;--btnfg:#0b1a17}
+html{scroll-padding-top:env(safe-area-inset-top,0px)}
+html,body{height:100%;margin:0}
+body{background:var(--bg);color:var(--fg);font-family:Georgia,"Times New Roman",serif;display:flex;align-items:center;justify-content:center;text-align:center}
+.box{max-width:420px;padding:24px}
+h1{font-size:2rem;line-height:1.15;margin:0 0 14px}
+p{font-size:1.1rem;line-height:1.5;color:var(--muted);margin:0 0 26px}
+button{font:inherit;font-size:1.1rem;padding:14px 34px;border:0;border-radius:999px;background:var(--btn);color:var(--btnfg);cursor:pointer}
+button:focus-visible{outline:3px solid var(--fg);outline-offset:3px}
+.dot{width:22px;height:22px;border-radius:50%;background:var(--btn);margin:0 auto 26px;animation:pulse 1.2s ease-in-out infinite}
+@keyframes pulse{50%{transform:scale(1.6);opacity:.5}}
+.hide{display:none}
+#scare{position:fixed;inset:0;z-index:99;background:#000;display:none;overflow:hidden}
+#scare svg{width:100%;height:100%;animation:zoom .25s ease-out forwards,shake .08s linear infinite}
+#scare.flash{animation:flash .12s steps(2) infinite}
+@keyframes zoom{from{transform:scale(.4)}to{transform:scale(1.15)}}
+@keyframes shake{0%{translate:-10px 6px}50%{translate:12px -8px}100%{translate:-6px -10px}}
+@keyframes flash{50%{background:#7a0000}}
+#end{position:fixed;inset:0;z-index:100;background:#000;color:#fff;display:none;align-items:center;justify-content:center;text-align:center;padding:24px;box-sizing:border-box}
+#end p{font-size:clamp(1.6rem,6vw,2.6rem);color:#fff;margin:0;max-width:600px;animation:in 1.2s ease forwards;opacity:0}
+@keyframes in{to{opacity:1}}
+@media (prefers-reduced-motion: reduce){.dot{animation:none}}
+</style>
+</head>
+<body>
+<main class="box">
+  <div id="start">
+    <h1>Teste de atenção</h1>
+    <p>Só 5% das pessoas passam nesse teste. Fixe o olhar no ponto e não pisque.</p>
+    <button id="go" type="button">Começar</button>
+  </div>
+  <div id="wait" class="hide">
+    <div class="dot"></div>
+    <h1>Não desvie o olhar…</h1>
+  </div>
+</main>
+
+<div id="scare" aria-hidden="true">
+<svg viewBox="0 0 400 600" preserveAspectRatio="xMidYMid slice">
+  <rect width="400" height="600" fill="#000"/>
+  <ellipse cx="200" cy="290" rx="135" ry="200" fill="#b9b2a3"/>
+  <path d="M90 200 Q200 120 310 200 L310 150 Q200 70 90 150Z" fill="#2a2622"/>
+  <ellipse cx="148" cy="245" rx="42" ry="56" fill="#000"/>
+  <ellipse cx="252" cy="245" rx="42" ry="56" fill="#000"/>
+  <circle cx="148" cy="250" r="13" fill="#ff1a1a"/>
+  <circle cx="252" cy="250" r="13" fill="#ff1a1a"/>
+  <circle cx="148" cy="250" r="5" fill="#fff"/>
+  <circle cx="252" cy="250" r="5" fill="#fff"/>
+  <path d="M100 195 L185 225 L180 205 L105 170Z M300 195 L215 225 L220 205 L295 170Z" fill="#000"/>
+  <path d="M200 270 L188 330 L212 330Z" fill="#000" opacity=".6"/>
+  <path d="M120 380 Q200 335 280 380 Q305 490 200 545 Q95 490 120 380Z" fill="#000"/>
+  <ellipse cx="200" cy="500" rx="55" ry="26" fill="#7a0010"/>
+  <path d="M128 392 L142 430 L156 380Z M158 380 L172 425 L186 372Z M188 372 L200 418 L214 372Z M214 372 L228 425 L242 380Z M244 380 L258 430 L272 392Z" fill="#f3efe4"/>
+  <path d="M150 520 L160 480 L172 530Z M228 530 L240 480 L252 520Z" fill="#f3efe4"/>
+  <path d="M130 130 L150 190 M270 130 L250 190 M210 110 L200 160" stroke="#000" stroke-width="3" opacity=".5"/>
+</svg>
+</div>
+
+<div id="end"><p id="phrase"></p></div>
+
+<script>
+// Troque aqui a frase final:
+var PHRASE = "Quem caiu eh emergente, ou namorava com a da cidade 2000, ou eh autista, ou gosta da gi praia";
+
+var ctx = null;
+
+function scream(){
+  try{
+    if(!ctx) return;
+    var t = ctx.currentTime, dur = 2.2;
+    var master = ctx.createGain();
+    master.gain.setValueAtTime(0.0001, t);
+    master.gain.exponentialRampToValueAtTime(1, t + 0.03);
+    master.gain.setValueAtTime(1, t + dur - 0.5);
+    master.gain.exponentialRampToValueAtTime(0.0001, t + dur);
+
+    var shaper = ctx.createWaveShaper();
+    var n = 1024, curve = new Float32Array(n);
+    for(var i=0;i<n;i++){var x=i*2/n-1;curve[i]=Math.tanh(x*6);}
+    shaper.curve = curve;
+
+    var comp = ctx.createDynamicsCompressor();
+    shaper.connect(master); master.connect(comp); comp.connect(ctx.destination);
+
+    var lfo = ctx.createOscillator(), lfoGain = ctx.createGain();
+    lfo.frequency.value = 14; lfoGain.gain.value = 60;
+    lfo.connect(lfoGain); lfo.start(t); lfo.stop(t + dur);
+
+    [1, 1.01, 1.5, 2.02].forEach(function(mult, i){
+      var o = ctx.createOscillator(), g = ctx.createGain();
+      o.type = i % 2 ? "square" : "sawtooth";
+      o.frequency.setValueAtTime(600*mult, t);
+      o.frequency.exponentialRampToValueAtTime(1500*mult, t + 0.5);
+      o.frequency.linearRampToValueAtTime(1100*mult, t + dur);
+      lfoGain.connect(o.frequency);
+      g.gain.value = 0.22;
+      o.connect(g); g.connect(shaper);
+      o.start(t); o.stop(t + dur);
+    });
+
+    var buf = ctx.createBuffer(1, ctx.sampleRate * dur, ctx.sampleRate);
+    var d = buf.getChannelData(0);
+    for(var j=0;j<d.length;j++) d[j] = Math.random()*2-1;
+    var noise = ctx.createBufferSource(); noise.buffer = buf;
+    var bp = ctx.createBiquadFilter(); bp.type = "bandpass"; bp.frequency.value = 2200; bp.Q.value = 0.7;
+    var ng = ctx.createGain(); ng.gain.value = 0.5;
+    noise.connect(bp); bp.connect(ng); ng.connect(shaper);
+    noise.start(t);
+  }catch(e){}
+}
+
+function scare(){
+  var s = document.getElementById("scare");
+  s.style.display = "block";
+  s.classList.add("flash");
+  scream();
+  try{ navigator.vibrate && navigator.vibrate([250,80,350,80,250]); }catch(e){}
+  setTimeout(function(){
+    s.style.display = "none";
+    document.getElementById("phrase").textContent = PHRASE;
+    document.getElementById("end").style.display = "flex";
+  }, 2400);
+}
+
+document.getElementById("go").addEventListener("click", function(){
+  try{
+    var AC = window.AudioContext || window.webkitAudioContext;
+    ctx = new AC();
+    ctx.resume();
+    var b = ctx.createBuffer(1,1,22050), src = ctx.createBufferSource();
+    src.buffer = b; src.connect(ctx.destination); src.start(0);
+  }catch(e){}
+  document.getElementById("start").classList.add("hide");
+  document.getElementById("wait").classList.remove("hide");
+  setTimeout(scare, 3500 + Math.random()*1500);
+});
+</script>
+</body>
+</html>
